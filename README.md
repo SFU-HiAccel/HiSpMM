@@ -1,6 +1,6 @@
 # HiSpMM
 
-**High-Bandwidth High-Performance Sparse Matrix-Matrix Multiplication on FPGA**
+**High Performance High Bandwidth Sparse-Dense Matrix Multiplication on HBM-equipped FPGAs**
 
 [![Platform](https://img.shields.io/badge/Platform-Xilinx%20Alveo%20U280-blue)](https://www.xilinx.com/products/boards-and-kits/alveo/u280.html)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
