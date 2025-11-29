@@ -3,7 +3,7 @@
 **High-Bandwidth High-Performance Sparse Matrix-Matrix Multiplication on FPGA**
 
 [![Platform](https://img.shields.io/badge/Platform-Xilinx%20Alveo%20U280-blue)](https://www.xilinx.com/products/boards-and-kits/alveo/u280.html)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
 HiSpMM is an FPGA-accelerated Sparse Matrix-Matrix Multiplication (SpMM) implementation targeting the **Xilinx Alveo U280** accelerator card.
 
