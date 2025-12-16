@@ -186,40 +186,50 @@ std::vector<std::vector<int>> computePEloads1(std::vector<std::vector<CSRMatrix>
                 Loads[pe][min_idx] += rowSize;
             }
 
-            // Accumulate PE loads for statistics (after Loads is fully built)
-            // Sum across II_DIST to get true per-PE load
+            // IMPORTANT:
+            // - Statistics: compute per-PE "true work" as sum across II lanes.
+            // - Scheduling/run-length: compute max depth across *individual II lanes*,
+            //   matching the original submitted scheduler's notion of run length.
+
+            // Scheduling: max occupancy of any (PE, II lane)
+            int max_lane_load = 0;
+            for (int p = 0; p < NUM_PES; ++p) {
+                for (int ii = 0; ii < II_DIST; ++ii) {
+                    if (Loads[p][ii] > max_lane_load) max_lane_load = Loads[p][ii];
+                }
+            }
+
+            // Stats: per-PE summed load (sum across II_DIST)
             double tile_load_sum = 0.0;
             double tile_load_sq_sum = 0.0;
             int tile_load_count = 0;
-            int max_load = 0;
             for (int p = 0; p < NUM_PES; ++p) {
                 int pe_load = 0;
-                for (int ii = 0; ii < II_DIST; ++ii) {
-                    pe_load += Loads[p][ii];
-                }
+                for (int ii = 0; ii < II_DIST; ++ii) pe_load += Loads[p][ii];
+
                 double load = static_cast<double>(pe_load);
                 load_sum    += load;
                 load_sq_sum += load * load;
                 load_count  += 1;
+
                 tile_load_sum    += load;
                 tile_load_sq_sum += load * load;
                 tile_load_count  += 1;
-                if (pe_load > max_load)
-                    max_load = pe_load;
             }
 
-            // Compute and print per-tile delta
+            // Compute and print per-tile delta (based on per-PE summed load).
             if (tile_load_count > 0) {
                 double tile_mean = tile_load_sum / static_cast<double>(tile_load_count);
                 double tile_var  = tile_load_sq_sum / static_cast<double>(tile_load_count) - tile_mean * tile_mean;
                 if (tile_var < 0.0) tile_var = 0.0;
                 double tile_stddev = std::sqrt(tile_var);
                 double tile_delta  = (tile_mean != 0.0) ? (tile_stddev / tile_mean) : 0.0;
-                printf("Tile[%d][%d] (no row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n", 
-                       i, j, tile_mean, tile_stddev, tile_delta, max_load);
+                printf("Tile[%d][%d] (no row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n",
+                       i, j, tile_mean, tile_stddev, tile_delta, max_lane_load);
             }
 
-            tileSizes[i][j] = (max_load+ PADDING) * II_DIST;
+            // Scheduling tile size: match submitted implementation
+            tileSizes[i][j] = (max_lane_load + PADDING) * II_DIST;
         }
     }
 
@@ -332,40 +342,50 @@ std::vector<std::vector<int>> computePEloads2(std::vector<std::vector<CSRMatrix>
                 Loads[pe][min_idx] += row_size;
             }
 
-            // Accumulate PE loads for statistics (after Loads is fully built)
-            // Sum across II_DIST to get true per-PE load
+            // IMPORTANT:
+            // - Statistics: compute per-PE "true work" as sum across II lanes.
+            // - Scheduling/run-length: compute max depth across *individual II lanes*,
+            //   matching the original submitted scheduler's notion of run length.
+
+            // Scheduling: max occupancy of any (PE, II lane)
+            int max_lane_load = 0;
+            for (int p = 0; p < NUM_PES; ++p) {
+                for (int ii = 0; ii < II_DIST; ++ii) {
+                    if (Loads[p][ii] > max_lane_load) max_lane_load = Loads[p][ii];
+                }
+            }
+
+            // Stats: per-PE summed load (sum across II_DIST)
             double tile_load_sum = 0.0;
             double tile_load_sq_sum = 0.0;
             int tile_load_count = 0;
-            int max_load = 0;
             for (int p = 0; p < NUM_PES; ++p) {
                 int pe_load = 0;
-                for (int ii = 0; ii < II_DIST; ++ii) {
-                    pe_load += Loads[p][ii];
-                }
+                for (int ii = 0; ii < II_DIST; ++ii) pe_load += Loads[p][ii];
+
                 double load = static_cast<double>(pe_load);
                 load_sum    += load;
                 load_sq_sum += load * load;
                 load_count  += 1;
+
                 tile_load_sum    += load;
                 tile_load_sq_sum += load * load;
                 tile_load_count  += 1;
-                if (pe_load > max_load)
-                    max_load = pe_load;
             }
 
-            // Compute and print per-tile delta
+            // Compute and print per-tile delta (based on per-PE summed load).
             if (tile_load_count > 0) {
                 double tile_mean = tile_load_sum / static_cast<double>(tile_load_count);
                 double tile_var  = tile_load_sq_sum / static_cast<double>(tile_load_count) - tile_mean * tile_mean;
                 if (tile_var < 0.0) tile_var = 0.0;
                 double tile_stddev = std::sqrt(tile_var);
                 double tile_delta  = (tile_mean != 0.0) ? (tile_stddev / tile_mean) : 0.0;
-                printf("Tile[%d][%d] (with row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n", 
-                       i, j, tile_mean, tile_stddev, tile_delta, max_load);
+                printf("Tile[%d][%d] (with row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n",
+                       i, j, tile_mean, tile_stddev, tile_delta, max_lane_load);
             }
 
-            tileSizes[i][j] = (max_load+ PADDING) * II_DIST;
+            // Scheduling tile size: match submitted implementation
+            tileSizes[i][j] = (max_lane_load + PADDING) * II_DIST;
             
             //find max pe load
         }
