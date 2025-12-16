@@ -1,0 +1,13 @@
+
+# HiSpMM generated/build artifacts
+HiSpMM-balanced/constraint.tcl
+HiSpMM-balanced/hispmm
+HiSpMM-balanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw.xo
+HiSpMM-balanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw.xo.tapa/
+HiSpMM-balanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw_generate_bitstream.sh
+
+HiSpMM-imbalanced/constraint.tcl
+HiSpMM-imbalanced/hispmm
+HiSpMM-imbalanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw.xo
+HiSpMM-imbalanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw.xo.tapa/
+HiSpMM-imbalanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw_generate_bitstream.sh
