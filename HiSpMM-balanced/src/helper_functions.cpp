@@ -1,6 +1,7 @@
 #include "helper_functions.h"
 #include "spmm.h"
 #include "mmio.h"
+#include <cstdio>
 #include <cmath>
 
 
@@ -49,12 +50,41 @@ std::vector<std::vector<int>> computePEloads1(std::vector<std::vector<CSRMatrix>
             }
 
             // Accumulate PE loads for statistics (after Loads is fully built)
+            // Match imbalanced kernel: compute per-PE load as sum over II_DIST lanes.
+            double tile_load_sum = 0.0;
+            double tile_load_sq_sum = 0.0;
+            int tile_load_count = 0;
+            int max_pe_load = 0;
+            int max_bucket_load = Loads[0][0];
             for (int p = 0; p < NUM_PES; ++p) {
+                int pe_load = 0;
                 for (int ii = 0; ii < II_DIST; ++ii) {
-                    double load = static_cast<double>(Loads[p][ii]);
-                    load_sum    += load;
-                    load_sq_sum += load * load;
-                    load_count  += 1;
+                    pe_load += Loads[p][ii];
+                    if (Loads[p][ii] > max_bucket_load) max_bucket_load = Loads[p][ii];
+                }
+                if (pe_load > max_pe_load) max_pe_load = pe_load;
+
+                const double load = static_cast<double>(pe_load);
+                load_sum    += load;
+                load_sq_sum += load * load;
+                load_count  += 1;
+
+                tile_load_sum    += load;
+                tile_load_sq_sum += load * load;
+                tile_load_count  += 1;
+            }
+
+            // Per-tile delta print (comparable to imbalanced logs)
+            if (tile_load_count > 0) {
+                const double tile_mean = tile_load_sum / static_cast<double>(tile_load_count);
+                double tile_var  = tile_load_sq_sum / static_cast<double>(tile_load_count) - tile_mean * tile_mean;
+                if (tile_var < 0.0) tile_var = 0.0;
+                const double tile_stddev = std::sqrt(tile_var);
+                const double tile_delta  = (tile_mean != 0.0) ? (tile_stddev / tile_mean) : 0.0;
+                #pragma omp critical
+                {
+                    std::printf("Tile[%d][%d] (no row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d (max_bucket=%d)\n",
+                                i, j, tile_mean, tile_stddev, tile_delta, max_pe_load, max_bucket_load);
                 }
             }
 
@@ -81,7 +111,7 @@ std::vector<std::vector<int>> computePEloads1(std::vector<std::vector<CSRMatrix>
         double stddev = std::sqrt(var);
         double delta  = (mean != 0.0) ? (stddev / mean) : 0.0;
 
-        std::cout << "PE load statistics: mean = " << ceil(mean)
+        std::cout << "PE load statistics (no row sharing) - Overall: mean = " << ceil(mean)
                   << ", stddev = " << stddev
                   << ", delta = " << delta << std::endl;
     }
