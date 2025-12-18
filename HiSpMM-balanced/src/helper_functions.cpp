@@ -3,6 +3,20 @@
 #include "mmio.h"
 #include <cstdio>
 #include <cmath>
+#include <cstdlib>
+#include <climits>
+
+static int hispmm_tile_stats_print_limit() {
+    // Default: off (0). Set env var HISPMM_TILE_STATS_PRINT_LIMIT=N to print first N tiles.
+    const char* s = std::getenv("HISPMM_TILE_STATS_PRINT_LIMIT");
+    if (!s || !*s) return 0;
+    char* end = nullptr;
+    long v = std::strtol(s, &end, 10);
+    if (end == s) return 0;
+    if (v <= 0) return 0;
+    if (v > INT_MAX) return INT_MAX;
+    return static_cast<int>(v);
+}
 
 
 std::vector<std::vector<int>> computePEloads1(std::vector<std::vector<CSRMatrix>> tiledMatrices, const int numTilesRows, const int numTilesCols, int& totalSize)
@@ -75,7 +89,9 @@ std::vector<std::vector<int>> computePEloads1(std::vector<std::vector<CSRMatrix>
             }
 
             // Per-tile delta print (comparable to imbalanced logs)
-            if (tile_load_count > 0) {
+            // Guarded because this can be extremely noisy under OMP.
+            const int tile_stats_print_limit = hispmm_tile_stats_print_limit();
+            if (tile_stats_print_limit > 0 && tile_load_count > 0) {
                 const double tile_mean = tile_load_sum / static_cast<double>(tile_load_count);
                 double tile_var  = tile_load_sq_sum / static_cast<double>(tile_load_count) - tile_mean * tile_mean;
                 if (tile_var < 0.0) tile_var = 0.0;
@@ -83,8 +99,18 @@ std::vector<std::vector<int>> computePEloads1(std::vector<std::vector<CSRMatrix>
                 const double tile_delta  = (tile_mean != 0.0) ? (tile_stddev / tile_mean) : 0.0;
                 #pragma omp critical
                 {
-                    std::printf("Tile[%d][%d] (no row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d (max_bucket=%d)\n",
-                                i, j, tile_mean, tile_stddev, tile_delta, max_pe_load, max_bucket_load);
+                    static int printed_tiles = 0;
+                    if (printed_tiles < tile_stats_print_limit) {
+                        ++printed_tiles;
+                        std::printf("Tile[%d][%d] (no row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d (max_bucket=%d)\n",
+                                    i, j, tile_mean, tile_stddev, tile_delta, max_pe_load, max_bucket_load);
+                        std::fflush(stdout);
+                        if (printed_tiles == tile_stats_print_limit) {
+                            std::printf("Tile stats: printed %d tiles; suppressing remaining per-tile stats. (Set HISPMM_TILE_STATS_PRINT_LIMIT higher to see more.)\n",
+                                        tile_stats_print_limit);
+                            std::fflush(stdout);
+                        }
+                    }
                 }
             }
 

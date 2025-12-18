@@ -2,7 +2,21 @@
 #include "spmm.h"
 #include "mmio.h"
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <climits>
 
+static int hispmm_tile_stats_print_limit() {
+    // Default: off (0). Set env var HISPMM_TILE_STATS_PRINT_LIMIT=N to print first N tiles.
+    const char* s = std::getenv("HISPMM_TILE_STATS_PRINT_LIMIT");
+    if (!s || !*s) return 0;
+    char* end = nullptr;
+    long v = std::strtol(s, &end, 10);
+    if (end == s) return 0;
+    if (v <= 0) return 0;
+    if (v > INT_MAX) return INT_MAX;
+    return static_cast<int>(v);
+}
 std::vector<std::vector<std::vector<int>>> balanceWorkload(std::vector<std::vector<CSRMatrix>> tiledMatrices, 
     const int numTilesRows, const int numTilesCols, const int Depth, const int SHARED_ROW_LIMIT, const int nnz,
     std::vector<std::vector<int>>& numSharedRows, std::vector<std::vector<int>>& maxPEload1_p, float& original_imb, float& improved_imb, int& totalPEload)
@@ -218,14 +232,28 @@ std::vector<std::vector<int>> computePEloads1(std::vector<std::vector<CSRMatrix>
             }
 
             // Compute and print per-tile delta (based on per-PE summed load).
-            if (tile_load_count > 0) {
+            // Guarded because this can be extremely noisy under OMP.
+            const int tile_stats_print_limit = hispmm_tile_stats_print_limit();
+            if (tile_stats_print_limit > 0 && tile_load_count > 0) {
                 double tile_mean = tile_load_sum / static_cast<double>(tile_load_count);
                 double tile_var  = tile_load_sq_sum / static_cast<double>(tile_load_count) - tile_mean * tile_mean;
                 if (tile_var < 0.0) tile_var = 0.0;
                 double tile_stddev = std::sqrt(tile_var);
                 double tile_delta  = (tile_mean != 0.0) ? (tile_stddev / tile_mean) : 0.0;
-                printf("Tile[%d][%d] (no row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n",
-                       i, j, tile_mean, tile_stddev, tile_delta, max_lane_load);
+                #pragma omp critical
+                {
+                    static int printed_tiles = 0;
+                    if (printed_tiles < tile_stats_print_limit) {
+                        ++printed_tiles;
+                        printf("Tile[%d][%d] (no row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n",
+                               i, j, tile_mean, tile_stddev, tile_delta, max_lane_load);
+                        fflush(stdout);
+                        if (printed_tiles == tile_stats_print_limit) {
+                            printf("Tile stats: printed %d tiles; suppressing remaining per-tile stats. (Set HISPMM_TILE_STATS_PRINT_LIMIT higher to see more.)\n", tile_stats_print_limit);
+                            fflush(stdout);
+                        }
+                    }
+                }
             }
 
             // Scheduling tile size: match submitted implementation
@@ -374,14 +402,28 @@ std::vector<std::vector<int>> computePEloads2(std::vector<std::vector<CSRMatrix>
             }
 
             // Compute and print per-tile delta (based on per-PE summed load).
-            if (tile_load_count > 0) {
+            // Guarded because this can be extremely noisy under OMP.
+            const int tile_stats_print_limit = hispmm_tile_stats_print_limit();
+            if (tile_stats_print_limit > 0 && tile_load_count > 0) {
                 double tile_mean = tile_load_sum / static_cast<double>(tile_load_count);
                 double tile_var  = tile_load_sq_sum / static_cast<double>(tile_load_count) - tile_mean * tile_mean;
                 if (tile_var < 0.0) tile_var = 0.0;
                 double tile_stddev = std::sqrt(tile_var);
                 double tile_delta  = (tile_mean != 0.0) ? (tile_stddev / tile_mean) : 0.0;
-                printf("Tile[%d][%d] (with row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n",
-                       i, j, tile_mean, tile_stddev, tile_delta, max_lane_load);
+                #pragma omp critical
+                {
+                    static int printed_tiles = 0;
+                    if (printed_tiles < tile_stats_print_limit) {
+                        ++printed_tiles;
+                        printf("Tile[%d][%d] (with row sharing): mean=%.1f, stddev=%.2f, delta=%.4f, max_load=%d\n",
+                               i, j, tile_mean, tile_stddev, tile_delta, max_lane_load);
+                        fflush(stdout);
+                        if (printed_tiles == tile_stats_print_limit) {
+                            printf("Tile stats: printed %d tiles; suppressing remaining per-tile stats. (Set HISPMM_TILE_STATS_PRINT_LIMIT higher to see more.)\n", tile_stats_print_limit);
+                            fflush(stdout);
+                        }
+                    }
+                }
             }
 
             // Scheduling tile size: match submitted implementation
