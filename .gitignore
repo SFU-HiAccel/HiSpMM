@@ -11,3 +11,11 @@ HiSpMM-imbalanced/hispmm
 HiSpMM-imbalanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw.xo
 HiSpMM-imbalanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw.xo.tapa/
 HiSpMM-imbalanced/hispmm.xilinx_u280_gen3x16_xdma_1_202211_1.hw_generate_bitstream.sh
+
+generated*/
+__pycache__/
+automation_tool/__pycache__/
+automation_tool/dse/__pycache__/
+tools/
+
+

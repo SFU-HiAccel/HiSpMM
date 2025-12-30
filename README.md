@@ -106,6 +106,72 @@ cd HiSpMM-imbalanced
 make host
 ```
 
+## Automation Tool (codegen + DSE)
+
+This repo also includes an **automation tool** that can:
+
+- Run **DSE** (cycle + resource estimation) to recommend a configuration for a matrix
+- Generate a self-contained build folder with:
+  - `src/hispmm.h`
+  - `src/hispmm.cpp`
+  - `src/hispmm_host.cpp`
+  - `Makefile`, `link_config.ini` (and optional floorplan assets)
+
+### Run code generation (recommended pick)
+
+```bash
+python -m automation_tool \
+  --matrix automation_tool/assets/common/matrices/airfoil_2d.mtx \
+  --n 8 \
+  --out generated/kernel_auto
+```
+
+### Force a specific pick (skip DSE)
+
+```bash
+python -m automation_tool --pick imbalanced_a8_c4 --out generated/kernel_pick
+```
+
+You can also use legacy aliases:
+
+- `--pick HiSpMM-balanced` → `balanced_a10_c4`
+- `--pick HiSpMM-imbalanced` → `imbalanced_a8_c4`
+
+### List supported picks
+
+```bash
+python -m automation_tool \
+  --matrix automation_tool/assets/common/matrices/airfoil_2d.mtx \
+  --n 8 \
+  --list-picks
+```
+
+### Run only DSE (no code generation)
+
+```bash
+python -m automation_tool.dse.cycle_analysis \
+  --matrix automation_tool/assets/common/matrices/hangGlider_3.mtx \
+  --n 8 \
+  --variant sweep
+```
+
+Notes:
+- `--term2-model` defaults to `runlen`.
+- `--resource-limit` can be used to filter recommendations; setting it to a value other than `1.0` enables resource estimation automatically.
+
+### Batch DSE over many matrices → CSV (testing helper)
+
+For running DSE on a directory of matrices and writing a single CSV summary:
+
+```bash
+python -m tools.dse_batch_recommend \
+  --matrices-dir automation_tool/assets/common/matrices \
+  --recursive \
+  --n 8 \
+  --variant sweep \
+  --out-csv generated/dse_recommend.csv
+```
+
 
 ### Build FPGA Bitstream (Optional)
 
@@ -227,8 +293,7 @@ month = oct,
 keywords = {SpMM, Imbalanced Workload, FPGA Accelerator, High Level Synthesis, Design Space Exploration}
 }
 ```
-## TODO
-Release the Automation Tool. 
+
 ## Acknowledgments
 
 - [TAPA](https://github.com/UCLA-VAST/tapa) - Task-Parallel High-Level Synthesis framework
