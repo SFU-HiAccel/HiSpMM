@@ -75,9 +75,9 @@ source /opt/xilinx/Vitis/2022.2/settings64.sh
 source /opt/xilinx/xrt/setup.sh
 ```
 
-### 2. Install TAPA
+### 2. Install PASTA
 
-Follow the [TAPA installation guide](https://tapa.readthedocs.io/en/release/installation.html):
+Follow the [PASTA installation guide](https://github.com/SFU-HiAccel/pasta).
 
 ### 3. Install Required Libraries
 
