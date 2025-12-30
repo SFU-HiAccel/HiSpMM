@@ -71,7 +71,7 @@ HiSpMM is an FPGA-accelerated Sparse Matrix-Matrix Multiplication (SpMM) impleme
 Download and install [Vitis Unified Software Platform](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis.html) and set up the environment:
 
 ```bash
-source /opt/xilinx/Vitis/2022.2/settings64.sh
+source /opt/xilinx/Vitis/2023.2/settings64.sh
 source /opt/xilinx/xrt/setup.sh
 ```
 
