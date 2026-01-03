@@ -159,19 +159,7 @@ Notes:
 - `--term2-model` defaults to `runlen`.
 - `--resource-limit` can be used to filter recommendations; setting it to a value other than `1.0` enables resource estimation automatically.
 
-### Batch DSE over many matrices → CSV (testing helper)
-
-For running DSE on a directory of matrices and writing a single CSV summary:
-
-```bash
-python -m tools.dse_batch_recommend \
-  --matrices-dir automation_tool/assets/common/matrices \
-  --recursive \
-  --n 8 \
-  --variant sweep \
-  --out-csv generated/dse_recommend.csv
-```
-
+ 
 
 ### Build FPGA Bitstream (Optional)
 
